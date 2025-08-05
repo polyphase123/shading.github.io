@@ -1,309 +1,394 @@
-import React, { useState, useMemo, useCallback } from 'react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Solar Array Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .panel {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border-width: 4px;
+        }
+        .panel:hover {
+            transform: scale(1.08);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+        }
+        
+        /* Panel State Colors */
+        .panel.full-power { background-color: #3b82f6; } /* blue-500 */
+        .panel.throttled { background-color: #f59e0b; } /* amber-500 */
 
-// --- STYLES ---
-const styles = `
-    body {
-        font-family: 'Inter', sans-serif;
-    }
-    .panel {
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        border-width: 4px;
-    }
-    .panel:hover {
-        transform: scale(1.08);
-        z-index: 10;
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
-    }
-    
-    /* Panel State Colors */
-    .panel.full-power { background-color: #3b82f6; } /* blue-500 */
-    .panel.throttled { background-color: #f59e0b; } /* amber-500 */
+        /* Shaded Effect Overlay */
+        .panel.shaded::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(17, 24, 39, 0.85); /* gray-900 85% */
+            backdrop-filter: grayscale(90%);
+            transition: all 0.2s ease-in-out;
+        }
+        .panel.shaded-50::before { opacity: 0.5; }
+        .panel.shaded-90::before { opacity: 0.9; }
 
-    /* Shaded Effect Overlay */
-    .panel.shaded::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background-color: rgba(17, 24, 39, 0.85); /* gray-900 85% */
-        backdrop-filter: grayscale(90%);
-        transition: all 0.2s ease-in-out;
-    }
-    .panel.shaded-50::before { opacity: 0.5; }
-    .panel.shaded-90::before { opacity: 0.9; }
+        .panel.shaded::after {
+            content: attr(data-shade-level);
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            z-index: 1;
+        }
 
-    .panel.shaded::after {
-        content: attr(data-shade-level);
-        position: absolute;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%) rotate(-20deg);
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 0.7rem;
-        font-weight: 800;
-        letter-spacing: 1.5px;
-        z-index: 1;
-    }
+        #panel-array {
+            display: grid;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background-color: rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        /* String colors for borders - Expanded to 20 colors */
+        .string-color-0 { border-color: #ef4444; } .string-color-1 { border-color: #3b82f6; } .string-color-2 { border-color: #22c55e; } .string-color-3 { border-color: #eab308; } .string-color-4 { border-color: #a855f7; } .string-color-5 { border-color: #ec4899; } .string-color-6 { border-color: #14b8a6; } .string-color-7 { border-color: #f97316; } .string-color-8 { border-color: #64748b; } .string-color-9 { border-color: #d946ef; }
+        .string-color-10 { border-color: #06b6d4; } .string-color-11 { border-color: #84cc16; } .string-color-12 { border-color: #f43f5e; } .string-color-13 { border-color: #10b981; } .string-color-14 { border-color: #8b5cf6; } .string-color-15 { border-color: #f59e0b; } .string-color-16 { border-color: #6366f1; } .string-color-17 { border-color: #d6d3d1; } .string-color-18 { border-color: #fbbf24; } .string-color-19 { border-color: #4ade80; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex items-center justify-center p-4">
+    <main class="w-full max-w-7xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">Advanced Solar Array Simulator</h1>
+            <p class="mt-2 text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">Click panels to cycle through shade levels (0%, 50%, 90%).</p>
+        </div>
 
-    #panel-array {
-        display: grid;
-        gap: 0.5rem;
-        padding: 1rem;
-        border-radius: 0.75rem;
-        background-color: rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.1);
-        transition: all 0.3s ease;
-    }
-    /* String colors for borders - Expanded to 20 colors */
-    .string-color-0 { border-color: #ef4444; } .string-color-1 { border-color: #3b82f6; } .string-color-2 { border-color: #22c55e; } .string-color-3 { border-color: #eab308; } .string-color-4 { border-color: #a855f7; } .string-color-5 { border-color: #ec4899; } .string-color-6 { border-color: #14b8a6; } .string-color-7 { border-color: #f97316; } .string-color-8 { border-color: #64748b; } .string-color-9 { border-color: #d946ef; }
-    .string-color-10 { border-color: #06b6d4; } .string-color-11 { border-color: #84cc16; } .string-color-12 { border-color: #f43f5e; } .string-color-13 { border-color: #10b981; } .string-color-14 { border-color: #8b5cf6; } .string-color-15 { border-color: #f59e0b; } .string-color-16 { border-color: #6366f1; } .string-color-17 { border-color: #d6d3d1; } .string-color-18 { border-color: #fbbf24; } .string-color-19 { border-color: #4ade80; }
-`;
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl items-center">
+            <div>
+                <label for="rows" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rows (<span id="rows-value">4</span>)</label>
+                <input type="range" id="rows" min="1" max="10" value="4" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
+            </div>
+            <div>
+                <label for="cols" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Panels per Row (<span id="cols-value">6</span>)</label>
+                <input type="range" id="cols" min="1" max="10" value="6" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
+            </div>
+            <div>
+                <label for="stringing" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Stringing Strategy</label>
+                <select id="stringing" class="w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="row">By Row</option>
+                    <option value="column">By Column</option>
+                    <option value="split">Split Array (2 Inverters)</option>
+                    <option value="leapfrog">Leapfrog / Zig-zag</option>
+                </select>
+            </div>
+            <div>
+                <label for="inverter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Inverter Type</label>
+                <select id="inverter" class="w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="string">String Inverter</option>
+                    <option value="micro">Microinverters</option>
+                </select>
+            </div>
+            <div class="mt-5">
+                <button id="clear-shade" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                    Clear All Shade
+                </button>
+            </div>
+        </div>
 
-// --- CONSTANTS ---
-const PANEL_MAX_WATTAGE = 550;
-const SHADE_LEVELS = [0, 0.5, 0.9]; // 0%, 50%, 90% shade
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div id="panel-array"></div>
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <h3 class="font-semibold text-center mb-3">Legend</h3>
+                    <div class="flex justify-center items-center gap-x-4 sm:gap-x-6 gap-y-2 flex-wrap text-xs sm:text-sm">
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-blue-500"></div><span>Full Power</span></div>
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-amber-500"></div><span>Throttled</span></div>
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-gray-900 opacity-50"></div><span>50% Shade</span></div>
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-gray-900 opacity-90"></div><span>90% Shade</span></div>
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm border-2 border-red-500"></div><span>String Group (Border)</span></div>
+                    </div>
+                </div>
+            </div>
 
-// --- HELPER FUNCTIONS ---
-const getPanelState = (panel, inverterType, stringShadeMap) => {
-    if (panel.shadeLevel > 0) {
-        return `shaded shaded-${panel.shadeLevel * 100} full-power`;
-    }
-    if (inverterType === 'string' && stringShadeMap.get(panel.stringId) > 0) {
-        return 'throttled';
-    }
-    return 'full-power';
-};
+            <!-- Results -->
+            <div class="lg:col-span-1 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl flex flex-col justify-center">
+                <h2 class="text-2xl font-bold text-center mb-4">System Performance</h2>
+                <div class="space-y-4">
+                    <div class="text-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <div id="system-size" class="text-lg font-bold text-blue-600 dark:text-blue-400">-- kW System</div>
+                        <div id="panel-count" class="text-xs text-gray-500 dark:text-gray-400">-- Panels</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="total-power" class="text-5xl font-bold text-blue-600 dark:text-blue-400">--</div>
+                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Current Output (Watts)</div>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-6 overflow-hidden">
+                        <div id="power-bar" class="bg-gradient-to-r from-green-400 to-blue-500 h-6 text-center text-white text-xs font-bold leading-6 transition-all duration-300" style="width: 100%;"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div id="max-power" class="text-2xl font-semibold">--</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Max Possible Power</div>
+                        </div>
+                        <div>
+                            <div id="power-loss" class="text-2xl font-semibold text-red-500">--</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Power Loss</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-blue-100 dark:bg-blue-900/40 border-l-4 border-blue-500 rounded-r-lg">
+                        <p id="info-text" class="text-sm text-blue-800 dark:text-blue-200"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
-// --- COMPONENTS ---
+    <script>
+        // --- CONFIGURATION ---
+        const PANEL_MAX_WATTAGE = 550;
+        const SHADE_LEVELS = [0, 0.5, 0.9]; // 0%, 50%, 90% shade
 
-const Panel = React.memo(({ panel, onPanelClick }) => {
-    return (
-        <div
-            className={`panel aspect-square rounded-md ${panel.visualState} ${panel.stringColorClass}`}
-            onClick={() => onPanelClick(panel.id)}
-            data-shade-level={panel.shadeLevel > 0 ? `${panel.shadeLevel * 100}%` : ''}
-        />
-    );
-});
+        // --- DOM ELEMENTS ---
+        const elements = {
+            rowsSlider: document.getElementById('rows'),
+            colsSlider: document.getElementById('cols'),
+            rowsValue: document.getElementById('rows-value'),
+            colsValue: document.getElementById('cols-value'),
+            stringingSelect: document.getElementById('stringing'),
+            inverterSelect: document.getElementById('inverter'),
+            clearShadeBtn: document.getElementById('clear-shade'),
+            panelArray: document.getElementById('panel-array'),
+            systemSize: document.getElementById('system-size'),
+            panelCount: document.getElementById('panel-count'),
+            totalPower: document.getElementById('total-power'),
+            maxPower: document.getElementById('max-power'),
+            powerLoss: document.getElementById('power-loss'),
+            powerBar: document.getElementById('power-bar'),
+            infoText: document.getElementById('info-text'),
+        };
 
-const App = () => {
-    const [rows, setRows] = useState(4);
-    const [cols, setCols] = useState(6);
-    const [stringing, setStringing] = useState('row');
-    const [inverter, setInverter] = useState('string');
-    const [panels, setPanels] = useState([]);
+        // --- APPLICATION STATE ---
+        let state = {
+            rows: 4,
+            cols: 6,
+            stringing: 'row',
+            inverter: 'string',
+            panels: [], // { id, row, col, shadeLevel, stringId }
+        };
 
-    // --- MEMOIZED CALCULATIONS ---
-    const calculatedData = useMemo(() => {
-        let panelId = 0;
-        const newPanels = [];
-        // Preserve shade levels when array dimensions change
-        const oldShadeMap = new Map(panels.map(p => [`${p.row}-${p.col}`, p.shadeLevel]));
+        // --- CORE LOGIC ---
 
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                newPanels.push({
-                    id: panelId++,
-                    row: r,
-                    col: c,
-                    shadeLevel: oldShadeMap.get(`${r}-${c}`) || 0,
-                    stringId: 0,
+        /**
+         * The main function to run all simulation steps in order.
+         */
+        function runSimulation() {
+            assignStrings();
+            const powerData = calculatePower();
+            updateUI(powerData);
+        }
+
+        /**
+         * Creates the visual grid of panels and the underlying data structure.
+         */
+        function createPanelGrid() {
+            elements.panelArray.innerHTML = '';
+            const oldShadeMap = new Map(state.panels.map(p => [`${p.row}-${p.col}`, p.shadeLevel]));
+            state.panels = [];
+            let panelId = 0;
+            
+            elements.panelArray.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
+
+            for (let r = 0; r < state.rows; r++) {
+                for (let c = 0; c < state.cols; c++) {
+                    const panelData = {
+                        id: panelId,
+                        row: r,
+                        col: c,
+                        shadeLevel: oldShadeMap.get(`${r}-${c}`) || 0,
+                        stringId: 0,
+                    };
+                    state.panels.push(panelData);
+
+                    const panelEl = document.createElement('div');
+                    panelEl.id = `panel-${panelId}`;
+                    panelEl.className = 'panel aspect-square rounded-md'; 
+                    panelEl.addEventListener('click', () => handlePanelClick(panelId));
+                    elements.panelArray.appendChild(panelEl);
+                    panelId++;
+                }
+            }
+            runSimulation();
+        }
+
+        /**
+         * Assigns a string ID to each panel based on the selected strategy.
+         */
+        function assignStrings() {
+            state.panels.forEach(p => {
+                let stringId = 0;
+                switch (state.stringing) {
+                    case 'column':
+                        stringId = p.col;
+                        break;
+                    case 'split':
+                        const midRow = Math.floor(state.rows / 2);
+                        stringId = p.row < midRow ? p.row : p.row + 10;
+                        break;
+                    case 'leapfrog':
+                        stringId = Math.floor(p.col / 2) + (p.row * Math.ceil(state.cols / 2));
+                        break;
+                    case 'row':
+                    default:
+                        stringId = p.row;
+                        break;
+                }
+                p.stringId = stringId;
+            });
+        }
+
+        /**
+         * Calculates power output based on current state.
+         * @returns {object} An object containing all calculated power metrics.
+         */
+        function calculatePower() {
+            const stringShadeMap = new Map();
+            let totalPower = 0;
+
+            if (state.inverter === 'string') {
+                state.panels.forEach(p => {
+                    const currentMax = stringShadeMap.get(p.stringId) || 0;
+                    if (p.shadeLevel > currentMax) {
+                        stringShadeMap.set(p.stringId, p.shadeLevel);
+                    }
+                });
+                const strings = {};
+                state.panels.forEach(p => {
+                    if (!strings[p.stringId]) strings[p.stringId] = [];
+                    strings[p.stringId].push(p);
+                });
+                for (const stringId in strings) {
+                    const maxShade = stringShadeMap.get(parseInt(stringId)) || 0;
+                    const powerPerPanel = PANEL_MAX_WATTAGE * (1 - maxShade);
+                    totalPower += strings[stringId].length * powerPerPanel;
+                }
+            } else { // Microinverters
+                state.panels.forEach(p => {
+                    totalPower += PANEL_MAX_WATTAGE * (1 - p.shadeLevel);
                 });
             }
+
+            const maxPower = state.rows * state.cols * PANEL_MAX_WATTAGE;
+            const powerLoss = maxPower - totalPower;
+            const powerPercentage = maxPower > 0 ? (totalPower / maxPower) * 100 : 0;
+
+            return { totalPower, maxPower, powerLoss, powerPercentage, stringShadeMap };
+        }
+
+        /**
+         * Updates the entire UI based on the current state and calculated power.
+         * @param {object} powerData - The object returned from calculatePower.
+         */
+        function updateUI(powerData) {
+            const { totalPower, maxPower, powerLoss, powerPercentage, stringShadeMap } = powerData;
+
+            // Update panel visuals
+            state.panels.forEach(panel => {
+                const panelEl = document.getElementById(`panel-${panel.id}`);
+                if (!panelEl) return;
+
+                let visualState = '';
+                if (panel.shadeLevel > 0) {
+                    visualState = `shaded shaded-${panel.shadeLevel * 100} full-power`;
+                } else if (state.inverter === 'string' && stringShadeMap.get(panel.stringId) > 0) {
+                    visualState = 'throttled';
+                } else {
+                    visualState = 'full-power';
+                }
+                
+                const stringColorClass = `string-color-${panel.stringId % 20}`;
+                panelEl.className = `panel aspect-square rounded-md ${visualState} ${stringColorClass}`;
+                panelEl.dataset.shadeLevel = panel.shadeLevel > 0 ? `${panel.shadeLevel * 100}%` : '';
+            });
+
+            // Update performance metrics
+            elements.systemSize.textContent = `${(maxPower / 1000).toFixed(2)} kW System`;
+            elements.panelCount.textContent = `${state.rows * state.cols} Panels`;
+            elements.totalPower.textContent = Math.round(totalPower);
+            elements.maxPower.textContent = maxPower.toLocaleString();
+            elements.powerLoss.textContent = Math.round(powerLoss).toLocaleString();
+            elements.powerBar.style.width = `${powerPercentage}%`;
+            elements.powerBar.textContent = `${Math.round(powerPercentage)}%`;
+            
+            // Update info text
+            elements.infoText.innerHTML = state.inverter === 'string'
+                ? `<strong>String Inverter:</strong> A string's output is limited by its most shaded panel. All panels in a shaded string (yellow) drop to the same reduced output.`
+                : `<strong>Microinverters:</strong> Each panel operates independently. Shading only affects the specific panel that is clicked.`;
+        }
+
+        // --- EVENT HANDLERS ---
+        
+        function handleControlChange(event) {
+            const { id, value } = event.target;
+            state[id] = value;
+            if (id === 'rows' || id === 'cols') {
+                elements[id + 'Value'].textContent = value;
+                createPanelGrid();
+            } else {
+                runSimulation();
+            }
+        }
+
+        function handlePanelClick(panelId) {
+            const panel = state.panels.find(p => p.id === panelId);
+            if (panel) {
+                const currentIndex = SHADE_LEVELS.indexOf(panel.shadeLevel);
+                const nextIndex = (currentIndex + 1) % SHADE_LEVELS.length;
+                panel.shadeLevel = SHADE_LEVELS[nextIndex];
+                runSimulation();
+            }
         }
         
-        // --- Advanced Stringing Logic ---
-        newPanels.forEach(p => {
-            let stringId = 0;
-            switch (stringing) {
-                case 'column':
-                    stringId = p.col;
-                    break;
-                case 'split': // Simulates 2 inverters, split horizontally
-                    const midRow = Math.floor(rows / 2);
-                    // Add a large offset to the bottom half's string IDs to force different colors
-                    stringId = p.row < midRow ? p.row : p.row + 10;
-                    break;
-                case 'leapfrog': // Zig-zag pattern
-                    stringId = Math.floor(p.col / 2) + (p.row * Math.ceil(cols / 2));
-                    break;
-                case 'row':
-                default:
-                    stringId = p.row;
-                    break;
-            }
-            p.stringId = stringId;
-        });
-
-        // --- Power and Visual State Calculation ---
-        const stringShadeMap = new Map();
-        let totalPower = 0;
-
-        if (inverter === 'string') {
-            // Find the max shade level for each string
-            newPanels.forEach(p => {
-                const currentMax = stringShadeMap.get(p.stringId) || 0;
-                if (p.shadeLevel > currentMax) {
-                    stringShadeMap.set(p.stringId, p.shadeLevel);
-                }
-            });
-
-            const strings = {};
-            newPanels.forEach(p => {
-                if (!strings[p.stringId]) strings[p.stringId] = [];
-                strings[p.stringId].push(p);
-            });
-            for (const stringId in strings) {
-                const maxShade = stringShadeMap.get(parseInt(stringId)) || 0;
-                const powerPerPanel = PANEL_MAX_WATTAGE * (1 - maxShade);
-                totalPower += strings[stringId].length * powerPerPanel;
-            }
-        } else { // Microinverters
-            newPanels.forEach(p => {
-                totalPower += PANEL_MAX_WATTAGE * (1 - p.shadeLevel);
-            });
+        function handleClearShade() {
+            state.panels.forEach(p => p.shadeLevel = 0);
+            runSimulation();
         }
-        
-        newPanels.forEach(p => {
-            p.visualState = getPanelState(p, inverter, stringShadeMap);
-            // Use larger color pool
-            p.stringColorClass = `string-color-${p.stringId % 20}`;
-        });
 
-        const maxPower = rows * cols * PANEL_MAX_WATTAGE;
-        const powerLoss = maxPower - totalPower;
-        const powerPercentage = maxPower > 0 ? (totalPower / maxPower) * 100 : 0;
-        
-        return { newPanels, totalPower, maxPower, powerLoss, powerPercentage };
-    }, [rows, cols, stringing, inverter, panels]);
+        /**
+         * Initializes the application, sets up listeners.
+         */
+        function init() {
+            // Set initial state from controls
+            state.rows = parseInt(elements.rowsSlider.value);
+            state.cols = parseInt(elements.colsSlider.value);
+            state.stringing = elements.stringingSelect.value;
+            state.inverter = elements.inverterSelect.value;
 
-    // --- EVENT HANDLERS ---
-    const handlePanelClick = useCallback((panelId) => {
-        setPanels(currentPanels =>
-            currentPanels.map(p => {
-                if (p.id === panelId) {
-                    const currentIndex = SHADE_LEVELS.indexOf(p.shadeLevel);
-                    const nextIndex = (currentIndex + 1) % SHADE_LEVELS.length;
-                    return { ...p, shadeLevel: SHADE_LEVELS[nextIndex] };
-                }
-                return p;
-            })
-        );
-    }, []);
+            // Setup event listeners
+            elements.rowsSlider.addEventListener('input', handleControlChange);
+            elements.colsSlider.addEventListener('input', handleControlChange);
+            elements.stringingSelect.addEventListener('change', handleControlChange);
+            elements.inverterSelect.addEventListener('change', handleControlChange);
+            elements.clearShadeBtn.addEventListener('click', handleClearShade);
 
-    const handleClearShade = useCallback(() => {
-        setPanels(currentPanels => currentPanels.map(p => ({ ...p, shadeLevel: 0 })));
-    }, []);
+            // Initial render
+            createPanelGrid();
+        }
 
-    // Effect to rebuild panel data when settings change
-    React.useEffect(() => {
-        setPanels(calculatedData.newPanels);
-    }, [rows, cols, stringing]);
-
-
-    return (
-        <>
-            <style>{styles}</style>
-            <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex items-center justify-center p-4">
-                <main className="w-full max-w-7xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8">
-                    <div className="text-center mb-6">
-                        <h1 className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">Advanced Solar Array Simulator</h1>
-                        <p className="mt-2 text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">Click panels to cycle through shade levels (0%, 50%, 90%).</p>
-                    </div>
-
-                    {/* Controls */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl items-center">
-                        <div>
-                            <label htmlFor="rows" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rows ({rows})</label>
-                            <input type="range" id="rows" min="1" max="10" value={rows} onChange={(e) => setRows(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
-                        </div>
-                        <div>
-                            <label htmlFor="cols" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Panels per Row ({cols})</label>
-                            <input type="range" id="cols" min="1" max="10" value={cols} onChange={(e) => setCols(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
-                        </div>
-                        <div>
-                            <label htmlFor="stringing" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Stringing Strategy</label>
-                            <select id="stringing" value={stringing} onChange={(e) => setStringing(e.target.value)} className="w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="row">By Row</option>
-                                <option value="column">By Column</option>
-                                <option value="split">Split Array (2 Inverters)</option>
-                                <option value="leapfrog">Leapfrog / Zig-zag</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="inverter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Inverter Type</label>
-                            <select id="inverter" value={inverter} onChange={(e) => setInverter(e.target.value)} className="w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="string">String Inverter</option>
-                                <option value="micro">Microinverters</option>
-                            </select>
-                        </div>
-                        <div className="mt-5">
-                            <button onClick={handleClearShade} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors">
-                                Clear All Shade
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Main Content */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
-                            <div id="panel-array" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-                                {calculatedData.newPanels.map(panel => (
-                                    <Panel key={panel.id} panel={panel} onPanelClick={handlePanelClick} />
-                                ))}
-                            </div>
-                            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <h3 className="font-semibold text-center mb-3">Legend</h3>
-                                <div className="flex justify-center items-center gap-x-4 sm:gap-x-6 gap-y-2 flex-wrap text-xs sm:text-sm">
-                                    <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-blue-500"></div><span>Full Power</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-amber-500"></div><span>Throttled</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-gray-900 opacity-50"></div><span>50% Shade</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm bg-gray-900 opacity-90"></div><span>90% Shade</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-sm border-2 border-red-500"></div><span>String Group (Border)</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Results */}
-                        <div className="lg:col-span-1 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl flex flex-col justify-center">
-                            <h2 className="text-2xl font-bold text-center mb-4">System Performance</h2>
-                            <div className="space-y-4">
-                                <div className="text-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{(calculatedData.maxPower / 1000).toFixed(2)} kW System</div>
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">{rows * cols} Panels</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">{Math.round(calculatedData.totalPower)}</div>
-                                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Output (Watts)</div>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-6 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-green-400 to-blue-500 h-6 text-center text-white text-xs font-bold leading-6 transition-all duration-300" style={{ width: `${calculatedData.powerPercentage}%` }}>
-                                        {Math.round(calculatedData.powerPercentage)}%
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 text-center">
-                                    <div>
-                                        <div className="text-2xl font-semibold">{calculatedData.maxPower.toLocaleString()}</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">Max Possible Power</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-semibold text-red-500">{Math.round(calculatedData.powerLoss).toLocaleString()}</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">Power Loss</div>
-                                    </div>
-                                </div>
-                                <div className="mt-4 p-4 bg-blue-100 dark:bg-blue-900/40 border-l-4 border-blue-500 rounded-r-lg">
-                                    <p className="text-sm text-blue-800 dark:text-blue-200" dangerouslySetInnerHTML={{ __html: inverter === 'string'
-                                            ? `<strong>String Inverter:</strong> A string's output is limited by its most shaded panel. All panels in a shaded string (yellow) drop to the same reduced output.`
-                                            : `<strong>Microinverters:</strong> Each panel operates independently. Shading only affects the specific panel that is clicked.`}} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
-        </>
-    );
-};
-
-export default App;
+        // --- START THE APP ---
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
