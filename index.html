@@ -65,6 +65,35 @@
         /* String colors for borders - Expanded to 20 colors */
         .string-color-0 { border-color: #ef4444; } .string-color-1 { border-color: #3b82f6; } .string-color-2 { border-color: #22c55e; } .string-color-3 { border-color: #eab308; } .string-color-4 { border-color: #a855f7; } .string-color-5 { border-color: #ec4899; } .string-color-6 { border-color: #14b8a6; } .string-color-7 { border-color: #f97316; } .string-color-8 { border-color: #64748b; } .string-color-9 { border-color: #d946ef; }
         .string-color-10 { border-color: #06b6d4; } .string-color-11 { border-color: #84cc16; } .string-color-12 { border-color: #f43f5e; } .string-color-13 { border-color: #10b981; } .string-color-14 { border-color: #8b5cf6; } .string-color-15 { border-color: #f59e0b; } .string-color-16 { border-color: #6366f1; } .string-color-17 { border-color: #d6d3d1; } .string-color-18 { border-color: #fbbf24; } .string-color-19 { border-color: #4ade80; }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 240px;
+            background-color: #111827; /* gray-900 */
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -120px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex items-center justify-center p-4">
@@ -75,7 +104,7 @@
         </div>
 
         <!-- Controls -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl items-center">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl items-start">
             <div>
                 <label for="rows" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rows (<span id="rows-value">4</span>)</label>
                 <input type="range" id="rows" min="1" max="10" value="4" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
@@ -100,30 +129,40 @@
                     <option value="micro">Microinverters</option>
                 </select>
             </div>
-            <div class="mt-5">
-                <button id="clear-shade" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors">
+            <div class="space-y-2">
+                 <button id="clear-shade" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors">
                     Clear All Shade
                 </button>
             </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2">
-                <div id="panel-array"></div>
-                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <h3 class="font-semibold text-center mb-3">Legend</h3>
-                    <div class="flex justify-center items-center gap-x-4 sm:gap-x-6 gap-y-2 flex-wrap text-xs sm:text-sm">
-                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-blue-500"></div><span>Full Power</span></div>
-                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-amber-500"></div><span>Throttled</span></div>
-                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-gray-900 opacity-50"></div><span>50% Shade</span></div>
-                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm bg-gray-900 opacity-90"></div><span>90% Shade</span></div>
-                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-sm border-2 border-red-500"></div><span>String Group (Border)</span></div>
+             <!-- New Controls with Tooltips -->
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Orientation & Tilt</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="tooltip">
+                        <label for="tilt" class="block text-xs font-medium text-gray-500 dark:text-gray-400">Tilt (<span id="tilt-value">15</span>°)</label>
+                        <input type="range" id="tilt" min="0" max="90" value="15" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
+                        <span class="tooltiptext">Tilt is the vertical angle of the panels relative to the ground. Optimal for the Philippines is ~15°.</span>
+                    </div>
+                    <div class="tooltip">
+                        <label for="azimuth" class="block text-xs font-medium text-gray-500 dark:text-gray-400">Azimuth (<span id="azimuth-value">180</span>°)</label>
+                        <input type="range" id="azimuth" min="90" max="270" value="180" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-600" />
+                        <span class="tooltiptext">Azimuth is the compass direction the panels face. 180° (due South) is optimal for the Northern Hemisphere.</span>
                     </div>
                 </div>
             </div>
+            <div class="col-span-1 md:col-span-2 lg:col-span-2">
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pre-set Shade Scenarios</label>
+                 <div class="flex space-x-2">
+                    <button id="chimney-shade" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition-colors text-xs">Chimney Shadow</button>
+                    <button id="morning-shade" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition-colors text-xs">Morning Shade</button>
+                 </div>
+            </div>
+        </div>
 
-            <!-- Results -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div id="panel-array"></div>
+            </div>
             <div class="lg:col-span-1 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl flex flex-col justify-center">
                 <h2 class="text-2xl font-bold text-center mb-4">System Performance</h2>
                 <div class="space-y-4">
@@ -157,238 +196,207 @@
     </main>
 
     <script>
-        // --- CONFIGURATION ---
-        const PANEL_MAX_WATTAGE = 550;
-        const SHADE_LEVELS = [0, 0.5, 0.9]; // 0%, 50%, 90% shade
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            const PANEL_MAX_WATTAGE = 550;
+            const SHADE_LEVELS = [0, 0.5, 0.9]; // 0%, 50%, 90%
 
-        // --- DOM ELEMENTS ---
-        const elements = {
-            rowsSlider: document.getElementById('rows'),
-            colsSlider: document.getElementById('cols'),
-            rowsValue: document.getElementById('rows-value'),
-            colsValue: document.getElementById('cols-value'),
-            stringingSelect: document.getElementById('stringing'),
-            inverterSelect: document.getElementById('inverter'),
-            clearShadeBtn: document.getElementById('clear-shade'),
-            panelArray: document.getElementById('panel-array'),
-            systemSize: document.getElementById('system-size'),
-            panelCount: document.getElementById('panel-count'),
-            totalPower: document.getElementById('total-power'),
-            maxPower: document.getElementById('max-power'),
-            powerLoss: document.getElementById('power-loss'),
-            powerBar: document.getElementById('power-bar'),
-            infoText: document.getElementById('info-text'),
-        };
+            // --- DOM ELEMENTS ---
+            const elements = {
+                rowsSlider: document.getElementById('rows'),
+                colsSlider: document.getElementById('cols'),
+                rowsValue: document.getElementById('rows-value'),
+                colsValue: document.getElementById('cols-value'),
+                tiltSlider: document.getElementById('tilt'),
+                azimuthSlider: document.getElementById('azimuth'),
+                tiltValue: document.getElementById('tilt-value'),
+                azimuthValue: document.getElementById('azimuth-value'),
+                stringingSelect: document.getElementById('stringing'),
+                inverterSelect: document.getElementById('inverter'),
+                clearShadeBtn: document.getElementById('clear-shade'),
+                chimneyShadeBtn: document.getElementById('chimney-shade'),
+                morningShadeBtn: document.getElementById('morning-shade'),
+                panelArray: document.getElementById('panel-array'),
+                systemSize: document.getElementById('system-size'),
+                panelCount: document.getElementById('panel-count'),
+                totalPower: document.getElementById('total-power'),
+                maxPower: document.getElementById('max-power'),
+                powerLoss: document.getElementById('power-loss'),
+                powerBar: document.getElementById('power-bar'),
+                infoText: document.getElementById('info-text'),
+            };
 
-        // --- APPLICATION STATE ---
-        let state = {
-            rows: 4,
-            cols: 6,
-            stringing: 'row',
-            inverter: 'string',
-            panels: [], // { id, row, col, shadeLevel, stringId }
-        };
+            // --- APPLICATION STATE (Single Source of Truth) ---
+            let state = {
+                rows: 4,
+                cols: 6,
+                tilt: 15, // Default for Philippines
+                azimuth: 180, // Default for Philippines
+                stringing: 'row',
+                inverter: 'string',
+                panels: [], // { id, row, col, shadeLevel, stringId }
+            };
 
-        // --- CORE LOGIC ---
-
-        /**
-         * The main function to run all simulation steps in order.
-         */
-        function runSimulation() {
-            assignStrings();
-            const powerData = calculatePower();
-            updateUI(powerData);
-        }
-
-        /**
-         * Creates the visual grid of panels and the underlying data structure.
-         */
-        function createPanelGrid() {
-            elements.panelArray.innerHTML = '';
-            const oldShadeMap = new Map(state.panels.map(p => [`${p.row}-${p.col}`, p.shadeLevel]));
-            state.panels = [];
-            let panelId = 0;
-            
-            elements.panelArray.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
-
-            for (let r = 0; r < state.rows; r++) {
-                for (let c = 0; c < state.cols; c++) {
-                    const panelData = {
-                        id: panelId,
-                        row: r,
-                        col: c,
-                        shadeLevel: oldShadeMap.get(`${r}-${c}`) || 0,
-                        stringId: 0,
-                    };
-                    state.panels.push(panelData);
-
-                    const panelEl = document.createElement('div');
-                    panelEl.id = `panel-${panelId}`;
-                    panelEl.className = 'panel aspect-square rounded-md'; 
-                    panelEl.addEventListener('click', () => handlePanelClick(panelId));
-                    elements.panelArray.appendChild(panelEl);
-                    panelId++;
-                }
-            }
-            runSimulation();
-        }
-
-        /**
-         * Assigns a string ID to each panel based on the selected strategy.
-         */
-        function assignStrings() {
-            state.panels.forEach(p => {
-                let stringId = 0;
-                switch (state.stringing) {
-                    case 'column':
-                        stringId = p.col;
-                        break;
-                    case 'split':
-                        const midRow = Math.floor(state.rows / 2);
-                        stringId = p.row < midRow ? p.row : p.row + 10;
-                        break;
-                    case 'leapfrog':
-                        stringId = Math.floor(p.col / 2) + (p.row * Math.ceil(state.cols / 2));
-                        break;
-                    case 'row':
-                    default:
-                        stringId = p.row;
-                        break;
-                }
-                p.stringId = stringId;
-            });
-        }
-
-        /**
-         * Calculates power output based on current state.
-         * @returns {object} An object containing all calculated power metrics.
-         */
-        function calculatePower() {
-            const stringShadeMap = new Map();
-            let totalPower = 0;
-
-            if (state.inverter === 'string') {
+            // --- RENDER FUNCTION (The only function that touches the DOM) ---
+            function render() {
+                // --- 1. Calculate derived state ---
                 state.panels.forEach(p => {
-                    const currentMax = stringShadeMap.get(p.stringId) || 0;
-                    if (p.shadeLevel > currentMax) {
-                        stringShadeMap.set(p.stringId, p.shadeLevel);
+                    let stringId = 0;
+                    switch (state.stringing) {
+                        case 'column': stringId = p.col; break;
+                        case 'split': const midRow = Math.floor(state.rows / 2); stringId = p.row < midRow ? p.row : p.row + 10; break;
+                        case 'leapfrog': stringId = Math.floor(p.col / 2) + (p.row * Math.ceil(state.cols / 2)); break;
+                        default: stringId = p.row; break;
                     }
+                    p.stringId = stringId;
                 });
-                const strings = {};
-                state.panels.forEach(p => {
-                    if (!strings[p.stringId]) strings[p.stringId] = [];
-                    strings[p.stringId].push(p);
-                });
-                for (const stringId in strings) {
-                    const maxShade = stringShadeMap.get(parseInt(stringId)) || 0;
-                    const powerPerPanel = PANEL_MAX_WATTAGE * (1 - maxShade);
-                    totalPower += strings[stringId].length * powerPerPanel;
+
+                const toRadians = deg => deg * (Math.PI / 180);
+                // Optimal tilt for Philippines is ~15 degrees
+                const tiltFactor = Math.cos(toRadians(state.tilt - 15));
+                const azimuthFactor = Math.cos(toRadians(state.azimuth - 180));
+                const deratingFactor = Math.max(0, tiltFactor) * Math.max(0, azimuthFactor);
+                const effectiveMaxWattage = PANEL_MAX_WATTAGE * deratingFactor;
+                
+                const stringShadeMap = new Map();
+                let totalPower = 0;
+
+                if (state.inverter === 'string') {
+                    state.panels.forEach(p => {
+                        const currentMax = stringShadeMap.get(p.stringId) || 0;
+                        if (p.shadeLevel > currentMax) stringShadeMap.set(p.stringId, p.shadeLevel);
+                    });
+                    const strings = {};
+                    state.panels.forEach(p => { if (!strings[p.stringId]) strings[p.stringId] = []; strings[p.stringId].push(p); });
+                    for (const stringId in strings) {
+                        const maxShade = stringShadeMap.get(parseInt(stringId)) || 0;
+                        totalPower += strings[stringId].length * (effectiveMaxWattage * (1 - maxShade));
+                    }
+                } else {
+                    state.panels.forEach(p => { totalPower += effectiveMaxWattage * (1 - p.shadeLevel); });
                 }
-            } else { // Microinverters
-                state.panels.forEach(p => {
-                    totalPower += PANEL_MAX_WATTAGE * (1 - p.shadeLevel);
+
+                const maxPower = state.rows * state.cols * effectiveMaxWattage;
+                const powerLoss = maxPower - totalPower;
+                const powerPercentage = maxPower > 0 ? (totalPower / maxPower) * 100 : 0;
+
+                // --- 2. Update the DOM ---
+                elements.panelArray.innerHTML = ''; // Clear previous state
+                elements.panelArray.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
+
+                state.panels.forEach(panel => {
+                    let visualState = '';
+                    if (panel.shadeLevel > 0) {
+                        visualState = `shaded shaded-${panel.shadeLevel * 100} full-power`;
+                    } else if (state.inverter === 'string' && stringShadeMap.get(panel.stringId) > 0) {
+                        visualState = 'throttled';
+                    } else {
+                        visualState = 'full-power';
+                    }
+                    const stringColorClass = `string-color-${panel.stringId % 20}`;
+                    
+                    const panelEl = document.createElement('div');
+                    panelEl.className = `panel aspect-square rounded-md ${visualState} ${stringColorClass}`;
+                    panelEl.dataset.shadeLevel = panel.shadeLevel > 0 ? `${panel.shadeLevel * 100}%` : '';
+                    panelEl.addEventListener('click', () => handlePanelClick(panel.id));
+                    elements.panelArray.appendChild(panelEl);
                 });
+                
+                elements.systemSize.textContent = `${(state.rows * state.cols * PANEL_MAX_WATTAGE / 1000).toFixed(2)} kW System`;
+                elements.panelCount.textContent = `${state.rows * state.cols} Panels`;
+                elements.totalPower.textContent = Math.round(totalPower);
+                elements.maxPower.textContent = Math.round(maxPower).toLocaleString();
+                elements.powerLoss.textContent = Math.round(powerLoss).toLocaleString();
+                elements.powerBar.style.width = `${powerPercentage}%`;
+                elements.powerBar.textContent = `${Math.round(powerPercentage)}%`;
+                elements.infoText.innerHTML = state.inverter === 'string'
+                    ? `<strong>String Inverter:</strong> A string's output is limited by its most shaded panel. All panels in a shaded string (yellow) drop to the same reduced output.`
+                    : `<strong>Microinverters:</strong> Each panel operates independently. Shading only affects the specific panel that is clicked.`;
             }
 
-            const maxPower = state.rows * state.cols * PANEL_MAX_WATTAGE;
-            const powerLoss = maxPower - totalPower;
-            const powerPercentage = maxPower > 0 ? (totalPower / maxPower) * 100 : 0;
-
-            return { totalPower, maxPower, powerLoss, powerPercentage, stringShadeMap };
-        }
-
-        /**
-         * Updates the entire UI based on the current state and calculated power.
-         * @param {object} powerData - The object returned from calculatePower.
-         */
-        function updateUI(powerData) {
-            const { totalPower, maxPower, powerLoss, powerPercentage, stringShadeMap } = powerData;
-
-            // Update panel visuals
-            state.panels.forEach(panel => {
-                const panelEl = document.getElementById(`panel-${panel.id}`);
-                if (!panelEl) return;
-
-                let visualState = '';
-                if (panel.shadeLevel > 0) {
-                    visualState = `shaded shaded-${panel.shadeLevel * 100} full-power`;
-                } else if (state.inverter === 'string' && stringShadeMap.get(panel.stringId) > 0) {
-                    visualState = 'throttled';
-                } else {
-                    visualState = 'full-power';
+            // --- EVENT HANDLERS (Only modify state, then call render) ---
+            function handleControlChange(event) {
+                const { id, value } = event.target;
+                state[id] = value;
+                if (['rows', 'cols', 'tilt', 'azimuth'].includes(id)) {
+                    elements[id + 'Value'].textContent = value;
                 }
                 
-                const stringColorClass = `string-color-${panel.stringId % 20}`;
-                panelEl.className = `panel aspect-square rounded-md ${visualState} ${stringColorClass}`;
-                panelEl.dataset.shadeLevel = panel.shadeLevel > 0 ? `${panel.shadeLevel * 100}%` : '';
-            });
+                if (['rows', 'cols'].includes(id)) {
+                    // Rebuild the panel data array when dimensions change
+                    const oldShadeMap = new Map(state.panels.map(p => [`${p.row}-${p.col}`, p.shadeLevel]));
+                    state.panels = [];
+                    let panelId = 0;
+                    for (let r = 0; r < state.rows; r++) {
+                        for (let c = 0; c < state.cols; c++) {
+                            state.panels.push({ id: panelId++, row: r, col: c, shadeLevel: oldShadeMap.get(`${r}-${c}`) || 0, stringId: 0 });
+                        }
+                    }
+                }
+                render();
+            }
 
-            // Update performance metrics
-            elements.systemSize.textContent = `${(maxPower / 1000).toFixed(2)} kW System`;
-            elements.panelCount.textContent = `${state.rows * state.cols} Panels`;
-            elements.totalPower.textContent = Math.round(totalPower);
-            elements.maxPower.textContent = maxPower.toLocaleString();
-            elements.powerLoss.textContent = Math.round(powerLoss).toLocaleString();
-            elements.powerBar.style.width = `${powerPercentage}%`;
-            elements.powerBar.textContent = `${Math.round(powerPercentage)}%`;
+            function handlePanelClick(panelId) {
+                const panel = state.panels.find(p => p.id === panelId);
+                if (panel) {
+                    const currentIndex = SHADE_LEVELS.indexOf(panel.shadeLevel);
+                    panel.shadeLevel = SHADE_LEVELS[(currentIndex + 1) % SHADE_LEVELS.length];
+                    render();
+                }
+            }
             
-            // Update info text
-            elements.infoText.innerHTML = state.inverter === 'string'
-                ? `<strong>String Inverter:</strong> A string's output is limited by its most shaded panel. All panels in a shaded string (yellow) drop to the same reduced output.`
-                : `<strong>Microinverters:</strong> Each panel operates independently. Shading only affects the specific panel that is clicked.`;
-        }
-
-        // --- EVENT HANDLERS ---
-        
-        function handleControlChange(event) {
-            const { id, value } = event.target;
-            state[id] = value;
-            if (id === 'rows' || id === 'cols') {
-                elements[id + 'Value'].textContent = value;
-                createPanelGrid();
-            } else {
-                runSimulation();
+            function handleClearShade() {
+                state.panels.forEach(p => p.shadeLevel = 0);
+                render();
             }
-        }
 
-        function handlePanelClick(panelId) {
-            const panel = state.panels.find(p => p.id === panelId);
-            if (panel) {
-                const currentIndex = SHADE_LEVELS.indexOf(panel.shadeLevel);
-                const nextIndex = (currentIndex + 1) % SHADE_LEVELS.length;
-                panel.shadeLevel = SHADE_LEVELS[nextIndex];
-                runSimulation();
+            function applyChimneyShade() {
+                handleClearShade();
+                const chimneyCol = Math.floor(state.cols / 2);
+                state.panels.forEach(p => {
+                    if (p.col === chimneyCol) p.shadeLevel = 0.9;
+                    if (p.col === chimneyCol - 1) p.shadeLevel = 0.5;
+                });
+                render();
             }
-        }
-        
-        function handleClearShade() {
-            state.panels.forEach(p => p.shadeLevel = 0);
-            runSimulation();
-        }
 
-        /**
-         * Initializes the application, sets up listeners.
-         */
-        function init() {
-            // Set initial state from controls
-            state.rows = parseInt(elements.rowsSlider.value);
-            state.cols = parseInt(elements.colsSlider.value);
-            state.stringing = elements.stringingSelect.value;
-            state.inverter = elements.inverterSelect.value;
+            function applyMorningShade() {
+                handleClearShade();
+                state.panels.forEach(p => {
+                    if (p.col === 0) p.shadeLevel = 0.9;
+                    if (p.col === 1) p.shadeLevel = 0.5;
+                });
+                render();
+            }
 
-            // Setup event listeners
-            elements.rowsSlider.addEventListener('input', handleControlChange);
-            elements.colsSlider.addEventListener('input', handleControlChange);
-            elements.stringingSelect.addEventListener('change', handleControlChange);
-            elements.inverterSelect.addEventListener('change', handleControlChange);
-            elements.clearShadeBtn.addEventListener('click', handleClearShade);
+            // --- INITIALIZATION ---
+            function init() {
+                // Set initial state from controls' default values
+                Object.keys(state).forEach(key => {
+                    const el = elements[key + 'Slider'] || elements[key + 'Select'];
+                    if (el) state[key] = el.value;
+                });
 
-            // Initial render
-            createPanelGrid();
-        }
+                ['rowsSlider', 'colsSlider', 'tiltSlider', 'azimuthSlider', 'stringingSelect', 'inverterSelect'].forEach(id => {
+                    elements[id].addEventListener('input', handleControlChange);
+                });
+                
+                elements.clearShadeBtn.addEventListener('click', handleClearShade);
+                elements.chimneyShadeBtn.addEventListener('click', applyChimneyShade);
+                elements.morningShadeBtn.addEventListener('click', applyMorningShade);
 
-        // --- START THE APP ---
-        document.addEventListener('DOMContentLoaded', init);
+                // Build initial panel data before first render
+                let panelId = 0;
+                for (let r = 0; r < state.rows; r++) {
+                    for (let c = 0; c < state.cols; c++) {
+                        state.panels.push({ id: panelId++, row: r, col: c, shadeLevel: 0, stringId: 0 });
+                    }
+                }
+                render();
+            }
+
+            init();
+        });
     </script>
 </body>
 </html>
